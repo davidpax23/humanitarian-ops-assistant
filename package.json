@@ -1,0 +1,9 @@
+{
+  "name": "humanitarian-ops-ai-assistant",
+  "version": "1.0.0",
+  "description": "Humanitarian Operations AI Assistant — IRC Internal Tool",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
+}

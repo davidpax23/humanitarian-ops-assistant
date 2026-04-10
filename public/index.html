@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Humanitarian Operations AI Assistant — IRC</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --red:#C0392B;--red-light:#fdf2f1;--red-mid:#f5c6c2;
+  --dark:#1a1a1a;--mid:#444;--muted:#888;--border:#e0e0e0;
+  --surface:#fafafa;--white:#fff;
+  --tag-bg:#f0f0f0;--tag-text:#555;
+  --risk:#fff3e0;--risk-border:#e65100;--risk-text:#bf360c;
+  --flag-text:#1b5e20;
+  --user-bg:#f5f5f5;--ai-bg:#fff;
+}
+
+html,body{height:100%;overflow:hidden}
+body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--dark);display:flex;flex-direction:column}
+
+.app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;height:56px;border-bottom:1px solid var(--border);
+  background:var(--white);flex-shrink:0;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.org-badge{
+  width:32px;height:32px;background:var(--red);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;color:#fff;letter-spacing:0.5px;font-family:'IBM Plex Mono',monospace;
+}
+.app-title{font-size:14px;font-weight:600;color:var(--dark);letter-spacing:-0.2px}
+.app-sub{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  background:#e8f5e9;border:1px solid #a5d6a7;
+  border-radius:20px;padding:4px 12px;font-size:11px;color:#2e7d32;font-weight:500;
+}
+.status-dot{width:6px;height:6px;background:#43a047;border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.main{display:flex;flex:1;overflow:hidden}
+
+.sidebar{
+  width:220px;flex-shrink:0;border-right:1px solid var(--border);
+  background:var(--surface);display:flex;flex-direction:column;padding:16px 0;overflow-y:auto;
+}
+.sidebar-section{padding:0 12px;margin-bottom:20px}
+.sidebar-label{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:0 8px;margin-bottom:6px}
+.workflow-btn{
+  display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;
+  border:none;background:transparent;border-radius:6px;cursor:pointer;
+  text-align:left;transition:all 0.15s;color:var(--mid);font-size:12px;font-family:'IBM Plex Sans',sans-serif;
+}
+.workflow-btn:hover{background:var(--white);color:var(--dark)}
+.workflow-btn.active{background:var(--red-light);color:var(--red);font-weight:500}
+.wf-icon{font-size:14px;width:20px;text-align:center}
+.wf-label{flex:1;line-height:1.3}
+
+.divider{height:1px;background:var(--border);margin:8px 12px}
+
+.quick-start{padding:12px;margin:0 12px;background:var(--red-light);border-radius:8px;border:1px solid var(--red-mid)}
+.qs-title{font-size:11px;font-weight:600;color:var(--red);margin-bottom:8px}
+.qs-chip{
+  display:inline-block;padding:4px 8px;background:var(--white);border:1px solid var(--red-mid);
+  border-radius:12px;font-size:10px;color:var(--red);cursor:pointer;margin:2px;transition:all 0.1s;
+}
+.qs-chip:hover{background:var(--red);color:#fff}
+
+.chat-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.messages{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:20px}
+
+.msg{display:flex;gap:12px;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse}
+.msg-avatar{
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;
+}
+.msg.user .msg-avatar{background:#e8e8e8;color:var(--mid)}
+.msg.ai .msg-avatar{background:var(--red);color:#fff}
+.msg-bubble{max-width:75%;display:flex;flex-direction:column;gap:4px}
+.msg.user .msg-bubble{align-items:flex-end}
+.msg-text{padding:12px 16px;border-radius:12px;font-size:13px;line-height:1.65}
+.msg.user .msg-text{background:var(--user-bg);color:var(--dark);border-radius:12px 4px 12px 12px}
+.msg.ai .msg-text{background:var(--ai-bg);border:1px solid var(--border);border-radius:4px 12px 12px 12px}
+.msg-meta{font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;padding:0 4px}
+
+.structured-output{display:flex;flex-direction:column;gap:12px}
+.out-section{border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.out-header{
+  padding:8px 14px;font-size:10px;font-weight:600;letter-spacing:0.8px;
+  display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;
+}
+.out-header .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.out-body{padding:12px 14px;font-size:13px;line-height:1.65;color:var(--dark)}
+
+.section-summary .out-header{background:#f0f4ff;color:#1a3a8f}
+.section-summary .out-header .dot{background:#1a3a8f}
+.section-summary .out-body{background:#f8faff}
+.section-findings .out-header{background:#f5f5f5;color:var(--mid)}
+.section-findings .out-header .dot{background:var(--mid)}
+.section-findings .out-body{background:var(--white)}
+.section-risk .out-header{background:var(--risk);color:var(--risk-border)}
+.section-risk .out-header .dot{background:var(--risk-border)}
+.section-risk .out-body{background:#fffdf8;border-top:2px solid var(--risk-border)}
+.section-actions .out-header{background:#e8f5e9;color:#1b5e20}
+.section-actions .out-header .dot{background:#2e7d32}
+.section-actions .out-body{background:#f9fdf9}
+.section-limits .out-header{background:#fafafa;color:var(--muted)}
+.section-limits .out-header .dot{background:var(--muted)}
+.section-limits .out-body{background:var(--white);color:var(--muted);font-style:italic;font-size:12px}
+
+.finding-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+.finding-row:last-child{margin-bottom:0}
+.finding-bullet{width:6px;height:6px;background:var(--red);border-radius:50%;margin-top:7px;flex-shrink:0}
+.source-tag{
+  display:inline-block;padding:1px 6px;background:var(--tag-bg);border-radius:4px;
+  font-size:10px;color:var(--tag-text);font-family:'IBM Plex Mono',monospace;margin-left:4px;
+}
+.risk-flag{
+  padding:10px 14px;background:var(--risk);border-left:3px solid var(--risk-border);
+  border-radius:0 6px 6px 0;font-size:12px;color:var(--risk-text);margin-top:4px;
+}
+.risk-flag strong{font-weight:600}
+.action-row{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start}
+.action-num{
+  width:20px;height:20px;background:var(--red);color:#fff;
+  border-radius:50%;font-size:10px;font-weight:600;display:flex;align-items:center;
+  justify-content:center;flex-shrink:0;margin-top:1px;font-family:'IBM Plex Mono',monospace;
+}
+
+.typing{display:flex;gap:4px;padding:14px 16px;border:1px solid var(--border);border-radius:4px 12px 12px 12px;width:fit-content;background:var(--ai-bg)}
+.typing span{width:6px;height:6px;background:var(--red);border-radius:50%;animation:bounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:0.15s}
+.typing span:nth-child(3){animation-delay:0.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+.input-bar{
+  border-top:1px solid var(--border);padding:16px 20px;background:var(--white);
+  display:flex;gap:10px;align-items:flex-end;flex-shrink:0;
+}
+.doc-attach{
+  display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px dashed var(--border);
+  border-radius:6px;font-size:11px;color:var(--muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;
+}
+.doc-attach:hover{border-color:var(--red);color:var(--red);background:var(--red-light)}
+.input-wrap{flex:1;border:1px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color 0.15s}
+.input-wrap:focus-within{border-color:var(--red)}
+.input-field{
+  width:100%;padding:10px 14px;border:none;outline:none;font-size:13px;
+  font-family:'IBM Plex Sans',sans-serif;color:var(--dark);background:transparent;resize:none;max-height:120px;
+}
+.send-btn{
+  padding:10px 18px;background:var(--red);color:#fff;border:none;border-radius:8px;
+  cursor:pointer;font-size:13px;font-weight:500;font-family:'IBM Plex Sans',sans-serif;
+  transition:all 0.15s;white-space:nowrap;
+}
+.send-btn:hover{background:#a93226}
+.send-btn:disabled{background:#ccc;cursor:not-allowed}
+
+.attached-doc{
+  display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--red-light);
+  border:1px solid var(--red-mid);border-radius:6px;font-size:11px;color:var(--red);margin-bottom:8px;
+}
+.attached-doc button{background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;padding:0;line-height:1}
+
+.welcome-card{max-width:560px;margin:0 auto;padding:32px 28px;text-align:center}
+.welcome-icon{width:56px;height:56px;background:var(--red);border-radius:14px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.welcome-title{font-size:20px;font-weight:600;color:var(--dark);margin-bottom:8px;letter-spacing:-0.3px}
+.welcome-sub{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+.wf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.wf-card{
+  padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  text-align:left;cursor:pointer;transition:all 0.15s;
+}
+.wf-card:hover{border-color:var(--red);background:var(--red-light)}
+.wf-card-icon{font-size:18px;margin-bottom:8px}
+.wf-card-name{font-size:12px;font-weight:600;color:var(--dark);margin-bottom:3px}
+.wf-card-desc{font-size:11px;color:var(--muted);line-height:1.4}
+
+.mode-tag{
+  display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
+  background:var(--red-light);border:1px solid var(--red-mid);border-radius:12px;
+  font-size:10px;font-weight:500;color:var(--red);margin-bottom:10px;
+  font-family:'IBM Plex Mono',monospace;
+}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="org-badge">IRC</div>
+      <div>
+        <div class="app-title">Humanitarian Operations AI Assistant</div>
+        <div class="app-sub">Internal Staff Tool — v1.0 — External Relations</div>
+      </div>
+    </div>
+    <div class="status-pill"><div class="status-dot"></div>Live</div>
+  </div>
+
+  <div class="main">
+
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Workflows</div>
+        <button class="workflow-btn active" onclick="setWorkflow('report')" id="wf-report">
+          <span class="wf-icon">📋</span><span class="wf-label">Field Report Summary</span>
+        </button>
+        <button class="workflow-btn" onclick="setWorkflow('policy')" id="wf-policy">
+          <span class="wf-icon">📜</span><span class="wf-label">Policy Interpretation</span>
+        </button>
+        <button class="workflow-btn" onclick="setWorkflow('plain')" id="wf-plain">
+          <span class="wf-icon">🔤</span><span class="wf-label">Plain Language</span>
+        </button>
+        <button class="workflow-btn" onclick="setWorkflow('decision')" id="wf-decision">
+          <span class="wf-icon">⚡</span><span class="wf-label">Decision Support</span>
+        </button>
+      </div>
+      <div class="divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Quick Start</div>
+        <div class="quick-start">
+          <div class="qs-title">Try a scenario</div>
+          <span class="qs-chip" onclick="loadExample('syria')">Syria field report</span>
+          <span class="qs-chip" onclick="loadExample('procurement')">Emergency procurement</span>
+          <span class="qs-chip" onclick="loadExample('security')">Armed group nearby</span>
+          <span class="qs-chip" onclick="loadExample('gbv')">GBV referral protocol</span>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Safety Status</div>
+        <div style="font-size:11px;color:var(--muted);padding:0 8px;line-height:1.9">
+          ✅ Citation mode: ON<br>
+          ✅ Uncertainty disclosure: ON<br>
+          ✅ Risk flagging: ON<br>
+          🚫 Legal advice: BLOCKED<br>
+          🚫 Medical decisions: BLOCKED
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Session</div>
+        <button class="workflow-btn" onclick="clearChat()" style="color:#c0392b">
+          <span class="wf-icon">🗑</span><span class="wf-label">Clear conversation</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-area">
+      <div class="messages" id="messages">
+        <div class="welcome-card">
+          <div class="welcome-icon">🌍</div>
+          <div class="welcome-title">Humanitarian Operations AI Assistant</div>
+          <div class="welcome-sub">I help IRC staff quickly access, interpret, and act on complex operational documents. All responses cite sources, declare uncertainty, and include clear next steps.</div>
+          <div class="wf-grid">
+            <div class="wf-card" onclick="setWorkflow('report')">
+              <div class="wf-card-icon">📋</div>
+              <div class="wf-card-name">Field Report Summary</div>
+              <div class="wf-card-desc">Extract key outputs, issues, and risk flags from field reports</div>
+            </div>
+            <div class="wf-card" onclick="setWorkflow('policy')">
+              <div class="wf-card-icon">📜</div>
+              <div class="wf-card-name">Policy Interpretation</div>
+              <div class="wf-card-desc">Get plain-language answers to compliance and policy questions</div>
+            </div>
+            <div class="wf-card" onclick="setWorkflow('plain')">
+              <div class="wf-card-icon">🔤</div>
+              <div class="wf-card-name">Plain Language</div>
+              <div class="wf-card-desc">Translate complex documents into simple, actionable language</div>
+            </div>
+            <div class="wf-card" onclick="setWorkflow('decision')">
+              <div class="wf-card-icon">⚡</div>
+              <div class="wf-card-name">Decision Support</div>
+              <div class="wf-card-desc">Get tiered checklists for urgent field decisions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-bar">
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div id="attached-doc-bar" style="display:none">
+            <div class="attached-doc">
+              <span>📄</span>
+              <span id="attached-doc-name"></span>
+              <button onclick="removeDoc()">×</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <label class="doc-attach">
+              <input type="file" style="display:none" onchange="attachDoc(this)" accept=".txt,.pdf,.doc,.docx">
+              📎 Attach doc
+            </label>
+            <div class="input-wrap" style="flex:1">
+              <textarea class="input-field" id="chat-input" placeholder="Select a workflow and describe your situation..." rows="2" onkeydown="handleKey(event)"></textarea>
+            </div>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">Send ↑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let currentWorkflow = 'report';
+let attachedDoc = null;
+let conversationHistory = [];
+let isLoading = false;
+
+// In production this is just '/api/chat' — Vercel routes it to api/chat.js
+// In local dev, point to localhost:3000/api/chat or use vercel dev
+const API_ENDPOINT = '/api/chat';
+
+const SYSTEM_PROMPT = `You are the Humanitarian Operations AI Assistant, deployed internally at a humanitarian organization (the International Rescue Committee). Your role is to help IRC staff quickly understand, interpret, and act on complex operational documents, field reports, and organizational policies.
+
+CORE BEHAVIORAL RULES:
+
+1. ACCURACY FIRST. Never invent facts. Only state what is directly supported by the information provided to you. If no document is provided, use general humanitarian best practices but clearly label them as such.
+
+2. CITE EVERYTHING. When interpreting or summarizing provided content, always reference the source. Use the format: [Source: Document Name, Section/Page] or [Source: General IRC Protocol] when no specific document is provided.
+
+3. DECLARE UNCERTAINTY. If you are not certain about an answer, say so clearly using phrases like: "I cannot confirm this based on the available information." or "This is my interpretation — please verify with [role/department]."
+
+4. STRUCTURED REASONING. Think step by step. Identify: (a) the key question, (b) relevant data, (c) the answer, (d) recommended next action.
+
+5. ACTIONABILITY. Every response must include a clear "What to do next" section.
+
+6. PLAIN LANGUAGE. Write for a smart, busy, non-specialist reader. Avoid jargon or define it when necessary.
+
+7. RISK AWARENESS. If your analysis surfaces a risk, protection concern, compliance issue, or safety flag, highlight it with the label [RISK FLAG] and indicate severity: LOW / MEDIUM / HIGH.
+
+8. NO OVERCONFIDENCE. You are a decision-support tool, not a decision maker. Always preserve human agency.
+
+RESPONSE FORMAT — always structure your response with these exact section headers:
+**SUMMARY**
+(2-4 sentences covering what this is about and the most important finding)
+
+**KEY FINDINGS**
+(up to 6 bullet points, each with a source citation)
+
+**RISK FLAGS**
+(only if risks exist — label each with severity: LOW/MEDIUM/HIGH. If none, write "No risk flags identified.")
+
+**WHAT TO DO NEXT**
+(numbered action steps, each specifying who acts and when)
+
+**LIMITATIONS**
+(what this response cannot confirm — never omit this section)
+
+CURRENT WORKFLOW MODE: {{WORKFLOW}}
+
+WORKFLOW-SPECIFIC INSTRUCTIONS:
+- field_report: Extract quantitative outputs, operational issues, protection concerns, budget variances. Be precise about numbers. Flag any data gaps.
+- policy: Locate and quote relevant clauses. Apply them to the specific scenario. Flag ambiguities.
+- plain_language: Rewrite complex content at an 8th-grade reading level. Preserve all factual content. Add a glossary.
+- decision_support: Classify the decision type. Create a tiered checklist (Immediate / Within 24hr / Within 72hr). List required approvals. Flag information gaps that block action.
+
+HARD CONSTRAINTS:
+- Do NOT provide legal advice, medical diagnoses, or security clearance decisions
+- Do NOT speculate about staff conduct unless explicitly documented
+- Do NOT summarize documents you have not been given — ask for them instead
+- If asked about something outside humanitarian operations, politely decline and refocus`;
+
+const WORKFLOWS = {
+  report:   { name: 'Field Report Summary',  placeholder: 'Paste field report text or describe what you need summarized...', icon: '📋' },
+  policy:   { name: 'Policy Interpretation', placeholder: 'Paste a policy clause or describe your compliance question...', icon: '📜' },
+  plain:    { name: 'Plain Language',         placeholder: 'Paste complex document text to translate into plain language...', icon: '🔤' },
+  decision: { name: 'Decision Support',       placeholder: 'Describe your field situation (e.g. "armed group 3km away, distribution in 6 hours")...', icon: '⚡' }
+};
+
+const EXAMPLES = {
+  syria: {
+    workflow: 'report',
+    text: 'Summarize this field situation for a leadership brief and flag any protection concerns:\n\nNortheast Syria, April report: 14,200 beneficiaries reached across 4 sites (target: 16,300). Site C activities halted Feb 12-28 due to checkpoint access restrictions by armed actors. Budget utilization at 91% overall; Shelter sector at 112% of planned expenditure. One GBV case documented in Section 4.1 — referral made but consent documentation and 72-hour case closure not completed per SOP. Health site reported 340 acute malnutrition screenings with 18% SAM rate (above 15% emergency threshold).'
+  },
+  procurement: {
+    workflow: 'policy',
+    text: 'I need to make an emergency procurement of $18,500 for NFI kits following a flash flood. The procurement committee cannot convene for 72 hours. My grant is from UNHCR. Can I proceed without full committee approval? What are the rules around emergency procurement thresholds and who needs to sign off?'
+  },
+  security: {
+    workflow: 'decision',
+    text: 'URGENT: Armed group reported 3km from our distribution site. We have 340 beneficiaries expected in 5 hours. Security officer is unreachable by phone, trying radio. Site has two exit routes — one confirmed clear, one unknown. What do I need to check and decide before we go ahead or postpone?'
+  },
+  gbv: {
+    workflow: 'policy',
+    text: 'A field team documented a GBV case yesterday but the survivor declined referral to external services. The case worker is unsure whether to close the case, escalate to the protection coordinator, or continue follow-up. What does standard GBV case management protocol say about survivor-centered response when a survivor declines services? What documentation is required regardless of outcome?'
+  }
+};
+
+function setWorkflow(wf) {
+  currentWorkflow = wf;
+  document.querySelectorAll('.workflow-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('wf-' + wf).classList.add('active');
+  document.getElementById('chat-input').placeholder = WORKFLOWS[wf].placeholder;
+}
+
+function loadExample(key) {
+  const ex = EXAMPLES[key];
+  setWorkflow(ex.workflow);
+  document.getElementById('chat-input').value = ex.text;
+  document.getElementById('chat-input').focus();
+}
+
+function attachDoc(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    document.getElementById('attached-doc-name').textContent = file.name;
+    document.getElementById('attached-doc-bar').style.display = 'block';
+    const reader = new FileReader();
+    reader.onload = e => { attachedDoc = { name: file.name, content: e.target.result }; };
+    reader.readAsText(file);
+  }
+}
+
+function removeDoc() {
+  attachedDoc = null;
+  document.getElementById('attached-doc-bar').style.display = 'none';
+}
+
+function clearChat() {
+  conversationHistory = [];
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = `<div class="welcome-card">
+    <div class="welcome-icon">🌍</div>
+    <div class="welcome-title">Conversation cleared</div>
+    <div class="welcome-sub">Start a new query using one of the workflows on the left.</div>
+  </div>`;
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function addMessage(role, content, structured) {
+  const msgs = document.getElementById('messages');
+  const welcome = msgs.querySelector('.welcome-card');
+  if (welcome) welcome.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+
+  const avatar = document.createElement('div');
+  avatar.className = 'msg-avatar';
+  avatar.textContent = role === 'user' ? 'YOU' : 'AI';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+
+  if (role === 'ai' && structured) {
+    const modeTag = document.createElement('div');
+    modeTag.className = 'mode-tag';
+    modeTag.innerHTML = WORKFLOWS[currentWorkflow].icon + ' ' + WORKFLOWS[currentWorkflow].name;
+    bubble.appendChild(modeTag);
+    bubble.appendChild(renderStructured(content));
+  } else {
+    const text = document.createElement('div');
+    text.className = 'msg-text';
+    text.textContent = content;
+    bubble.appendChild(text);
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'msg-meta';
+  meta.textContent = new Date().toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'});
+  bubble.appendChild(meta);
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function renderStructured(text) {
+  const container = document.createElement('div');
+  container.className = 'structured-output';
+
+  const sections = {
+    'SUMMARY': 'section-summary',
+    'KEY FINDINGS': 'section-findings',
+    'RISK FLAGS': 'section-risk',
+    'WHAT TO DO NEXT': 'section-actions',
+    'LIMITATIONS': 'section-limits'
+  };
+
+  const parts = text.split(/\*\*(SUMMARY|KEY FINDINGS|RISK FLAGS|WHAT TO DO NEXT|LIMITATIONS)\*\*/g);
+  let currentKey = null, currentContent = '';
+
+  function flush() {
+    if (!currentKey || !currentContent.trim()) return;
+    const div = document.createElement('div');
+    div.className = 'out-section ' + sections[currentKey];
+
+    const hdr = document.createElement('div');
+    hdr.className = 'out-header';
+    hdr.innerHTML = '<div class="dot"></div>' + currentKey;
+    div.appendChild(hdr);
+
+    const body = document.createElement('div');
+    body.className = 'out-body';
+    const lines = currentContent.trim().split('\n').filter(l => l.trim());
+
+    if (currentKey === 'KEY FINDINGS') {
+      lines.forEach(line => {
+        const clean = line.replace(/^[-•*]\s*/, '').trim();
+        if (!clean) return;
+        const row = document.createElement('div');
+        row.className = 'finding-row';
+        const b = document.createElement('div');
+        b.className = 'finding-bullet';
+        const t = document.createElement('span');
+        t.innerHTML = clean.replace(/\[Source: ([^\]]+)\]/g, '<span class="source-tag">$1</span>');
+        row.appendChild(b); row.appendChild(t);
+        body.appendChild(row);
+      });
+    } else if (currentKey === 'WHAT TO DO NEXT') {
+      let n = 1;
+      lines.forEach(line => {
+        const clean = line.replace(/^\d+\.\s*/, '').replace(/^[-•*]\s*/, '').trim();
+        if (!clean) return;
+        const row = document.createElement('div');
+        row.className = 'action-row';
+        const num = document.createElement('div');
+        num.className = 'action-num';
+        num.textContent = n++;
+        const t = document.createElement('span');
+        t.textContent = clean;
+        row.appendChild(num); row.appendChild(t);
+        body.appendChild(row);
+      });
+    } else if (currentKey === 'RISK FLAGS') {
+      const allText = lines.join(' ');
+      if (allText.toLowerCase().includes('no risk flag') || !allText.trim()) {
+        body.innerHTML = '<span style="color:var(--flag-text);font-size:13px">✅ No risk flags identified.</span>';
+      } else {
+        lines.forEach(line => {
+          const clean = line.replace(/^[-•*]\s*/, '').trim();
+          if (!clean) return;
+          const flag = document.createElement('div');
+          flag.className = 'risk-flag';
+          flag.innerHTML = clean
+            .replace(/\[RISK FLAG\]/g, '<strong>[RISK FLAG]</strong>')
+            .replace(/\bHIGH\b/g, '<strong style="color:#b71c1c">HIGH</strong>')
+            .replace(/\bMEDIUM\b/g, '<strong style="color:#e65100">MEDIUM</strong>')
+            .replace(/\bLOW\b/g, '<strong style="color:#827717">LOW</strong>');
+          body.appendChild(flag);
+        });
+      }
+    } else {
+      body.innerHTML = '<span style="font-size:13px">' + currentContent.trim().replace(/\n/g, '<br>') + '</span>';
+    }
+
+    div.appendChild(body);
+    container.appendChild(div);
+  }
+
+  for (let i = 0; i < parts.length; i++) {
+    if (sections[parts[i]]) { flush(); currentKey = parts[i]; currentContent = ''; }
+    else currentContent += parts[i];
+  }
+  flush();
+
+  if (!container.children.length) {
+    const d = document.createElement('div');
+    d.className = 'msg-text';
+    d.textContent = text;
+    return d;
+  }
+  return container;
+}
+
+function showTyping() {
+  const msgs = document.getElementById('messages');
+  const t = document.createElement('div');
+  t.className = 'msg ai'; t.id = 'typing-indicator';
+  t.innerHTML = '<div class="msg-avatar" style="background:var(--red);color:#fff">AI</div><div class="typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(t);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+async function sendMessage() {
+  if (isLoading) return;
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  let userMessage = text;
+  if (attachedDoc && typeof attachedDoc === 'object') {
+    userMessage = text + '\n\n[ATTACHED DOCUMENT: ' + attachedDoc.name + ']\n' + attachedDoc.content.substring(0, 4000);
+  }
+
+  addMessage('user', text);
+  input.value = '';
+  isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+  conversationHistory.push({ role: 'user', content: userMessage });
+  showTyping();
+
+  const systemPrompt = SYSTEM_PROMPT.replace('{{WORKFLOW}}', currentWorkflow + ' (' + WORKFLOWS[currentWorkflow].name + ')');
+
+  try {
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: conversationHistory
+      })
+    });
+
+    const data = await response.json();
+    removeTyping();
+
+    if (data.content && data.content[0]) {
+      const reply = data.content[0].text;
+      conversationHistory.push({ role: 'assistant', content: reply });
+      addMessage('ai', reply, true);
+    } else {
+      addMessage('ai', 'Error: ' + (data.error || 'Unexpected response. Please try again.'), false);
+    }
+  } catch (err) {
+    removeTyping();
+    addMessage('ai', 'Connection error: ' + err.message, false);
+  }
+
+  isLoading = false;
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+</script>
+</body>
+</html>
