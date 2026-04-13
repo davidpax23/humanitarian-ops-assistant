@@ -169,12 +169,13 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
 /* ── INPUT BAR ── */
 .input-bar{
   border-top:1.5px solid var(--border);padding:18px 24px;background:var(--white);
-  display:flex;gap:12px;align-items:flex-end;flex-shrink:0;transition:padding 0.2s;
+  display:flex;gap:12px;align-items:flex-start;flex-shrink:0;transition:padding 0.2s;
 }
 .input-bar.expanded{padding:14px 24px}
 .doc-attach{
   display:flex;align-items:center;gap:7px;padding:10px 14px;border:1.5px dashed var(--border);
   border-radius:8px;font-size:var(--fs-sm);color:var(--muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;
+  margin-top:2px;
 }
 .doc-attach:hover{border-color:var(--red);color:var(--red);background:var(--red-light)}
 .input-wrap{
@@ -188,14 +189,14 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
   font-size:var(--fs-base);line-height:1.6;
   font-family:'IBM Plex Sans',sans-serif;color:var(--dark);background:transparent;
   resize:vertical;
-  height:56px;
-  min-height:56px;
+  height:160px;
+  min-height:100px;
   max-height:480px;
   transition:height 0.25s ease;
   overflow-y:auto;
 }
 .input-field.expanded{
-  height:240px;
+  height:320px;
 }
 .input-field::placeholder{color:#aaa}
 
@@ -355,13 +356,13 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
               <button onclick="removeDoc()">×</button>
             </div>
           </div>
-          <div style="display:flex;gap:12px;align-items:flex-end">
+          <div style="display:flex;gap:12px;align-items:flex-start">
             <label class="doc-attach">
               <input type="file" style="display:none" onchange="attachDoc(this)" accept=".txt,.pdf,.doc,.docx">
               📎 Attach doc
             </label>
             <div class="input-wrap" style="flex:1">
-              <textarea class="input-field" id="chat-input" placeholder="Select a workflow and describe your situation..." rows="2" onkeydown="handleKey(event)"></textarea>
+              <textarea class="input-field" id="chat-input" placeholder="Select a workflow and describe your situation..." rows="5" onkeydown="handleKey(event)"></textarea>
               <button class="expand-btn" id="expand-btn" onclick="toggleExpand()" title="Expand input">⤢</button>
             </div>
             <button class="send-btn" id="send-btn" onclick="sendMessage()">Send ↑</button>
