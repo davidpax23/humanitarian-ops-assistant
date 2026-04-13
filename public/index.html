@@ -169,21 +169,48 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
 /* ── INPUT BAR ── */
 .input-bar{
   border-top:1.5px solid var(--border);padding:18px 24px;background:var(--white);
-  display:flex;gap:12px;align-items:flex-end;flex-shrink:0;
+  display:flex;gap:12px;align-items:flex-end;flex-shrink:0;transition:padding 0.2s;
 }
+.input-bar.expanded{padding:14px 24px}
 .doc-attach{
   display:flex;align-items:center;gap:7px;padding:10px 14px;border:1.5px dashed var(--border);
   border-radius:8px;font-size:var(--fs-sm);color:var(--muted);cursor:pointer;white-space:nowrap;transition:all 0.15s;
 }
 .doc-attach:hover{border-color:var(--red);color:var(--red);background:var(--red-light)}
-.input-wrap{flex:1;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color 0.15s;background:var(--white)}
+.input-wrap{
+  flex:1;border:1.5px solid var(--border);border-radius:12px;
+  overflow:hidden;transition:border-color 0.2s;background:var(--white);position:relative;
+  display:flex;flex-direction:column;
+}
 .input-wrap:focus-within{border-color:var(--red)}
 .input-field{
   width:100%;padding:12px 16px;border:none;outline:none;
   font-size:var(--fs-base);line-height:1.6;
-  font-family:'IBM Plex Sans',sans-serif;color:var(--dark);background:transparent;resize:none;max-height:130px;
+  font-family:'IBM Plex Sans',sans-serif;color:var(--dark);background:transparent;
+  resize:vertical;
+  height:56px;
+  min-height:56px;
+  max-height:480px;
+  transition:height 0.25s ease;
+  overflow-y:auto;
+}
+.input-field.expanded{
+  height:240px;
 }
 .input-field::placeholder{color:#aaa}
+
+/* expand/collapse toggle button inside the input wrap */
+.expand-btn{
+  position:absolute;top:8px;right:10px;
+  background:none;border:none;cursor:pointer;
+  color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;
+  border-radius:4px;transition:all 0.15s;
+  font-family:'IBM Plex Mono',monospace;
+  z-index:1;
+}
+.expand-btn:hover{color:var(--red);background:var(--red-light)}
+.expand-btn title{display:none}
+
 .send-btn{
   padding:12px 22px;background:var(--red);color:#fff;border:none;border-radius:10px;
   cursor:pointer;font-size:var(--fs-base);font-weight:600;font-family:'IBM Plex Sans',sans-serif;
@@ -319,7 +346,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
         </div>
       </div>
 
-      <div class="input-bar">
+      <div class="input-bar" id="input-bar">
         <div style="flex:1;display:flex;flex-direction:column">
           <div id="attached-doc-bar" style="display:none">
             <div class="attached-doc">
@@ -335,6 +362,7 @@ body{font-family:'IBM Plex Sans',sans-serif;background:var(--white);color:var(--
             </label>
             <div class="input-wrap" style="flex:1">
               <textarea class="input-field" id="chat-input" placeholder="Select a workflow and describe your situation..." rows="2" onkeydown="handleKey(event)"></textarea>
+              <button class="expand-btn" id="expand-btn" onclick="toggleExpand()" title="Expand input">⤢</button>
             </div>
             <button class="send-btn" id="send-btn" onclick="sendMessage()">Send ↑</button>
           </div>
@@ -428,6 +456,25 @@ const EXAMPLES = {
     text: 'A field team documented a GBV case yesterday but the survivor declined referral to external services. The case worker is unsure whether to close the case, escalate to the protection coordinator, or continue follow-up. What does standard GBV case management protocol say about survivor-centered response when a survivor declines services? What documentation is required regardless of outcome?'
   }
 };
+
+function toggleExpand() {
+  const field = document.getElementById('chat-input');
+  const btn = document.getElementById('expand-btn');
+  const bar = document.getElementById('input-bar');
+  const isExpanded = field.classList.contains('expanded');
+  if (isExpanded) {
+    field.classList.remove('expanded');
+    btn.textContent = '⤢';
+    btn.title = 'Expand input';
+    bar.classList.remove('expanded');
+  } else {
+    field.classList.add('expanded');
+    btn.textContent = '⤡';
+    btn.title = 'Collapse input';
+    bar.classList.add('expanded');
+    field.focus();
+  }
+}
 
 function setWorkflow(wf) {
   currentWorkflow = wf;
